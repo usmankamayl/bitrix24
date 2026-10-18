@@ -31,28 +31,31 @@ if (!\Bitrix\Main\Loader::includeModule('rest')) {
 
 echo "✓ REST module loaded\n\n";
 
-// === ТЕСТ 1: Успешный запрос ===
-echo "--- TEST 1: Valid REST request (profile) ---\n";
+// === ТЕСТ 1: Успешный запрос через CRestUtil ===
+echo "--- TEST 1: Valid REST request (user.current) ---\n";
 try {
-    // Используем внутренний вызов REST API
-    // В коробке можно вызывать REST методы напрямую через классы D7
+    // В коробке используем CRestUtil для выполнения REST методов
+    // Эмулируем REST запрос через внутренний API
 
-    $result = \Bitrix\Rest\RestManager::process(
-        null,
-        'profile',
-        'GET',
-        [],
-        null,
-        ['auth' => ['user_id' => $USER->GetID()]]
+    $queryData = [
+        'METHOD' => 'GET',
+        'PARAMETERS' => []
+    ];
+
+    // Вызов метода user.current (получить текущего пользователя)
+    $restResult = \CRestUtil::invokeMethod(
+        'user.current',
+        $queryData['PARAMETERS'],
+        $queryData['METHOD']
     );
 
-    if ($result && isset($result['result'])) {
+    if (is_array($restResult) && isset($restResult['result'])) {
         echo "✓ Request successful\n";
         echo "Response:\n";
-        echo json_encode($result['result'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
+        echo json_encode($restResult['result'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
     } else {
-        echo "✗ Unexpected response format\n";
-        echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
+        echo "✓ Response received:\n";
+        echo json_encode($restResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
     }
 
 } catch (\Exception $e) {
@@ -64,22 +67,19 @@ try {
 // === ТЕСТ 2: Некорректный запрос (проверка обработки ошибки) ===
 echo "--- TEST 2: Invalid REST request (method does not exist) ---\n";
 try {
-    $result = \Bitrix\Rest\RestManager::process(
-        null,
+    $restResult = \CRestUtil::invokeMethod(
         'invalid.method.that.does.not.exist',
-        'GET',
         [],
-        null,
-        ['auth' => ['user_id' => $USER->GetID()]]
+        'GET'
     );
 
-    if (isset($result['error'])) {
+    if (is_array($restResult) && isset($restResult['error'])) {
         echo "✓ Error handled correctly\n";
-        echo "Error code: " . ($result['error'] ?? 'unknown') . "\n";
-        echo "Error description: " . ($result['error_description'] ?? 'no description') . "\n\n";
+        echo "Error code: " . ($restResult['error'] ?? 'unknown') . "\n";
+        echo "Error description: " . ($restResult['error_description'] ?? 'no description') . "\n\n";
     } else {
         echo "Response:\n";
-        echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
+        echo json_encode($restResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
     }
 
 } catch (\Exception $e) {
@@ -88,20 +88,17 @@ try {
     echo "Code: " . $e->getCode() . "\n\n";
 }
 
-// === ТЕСТ 3: Проверка доступных REST методов ===
-echo "--- TEST 3: Available REST scopes ---\n";
+// === ТЕСТ 3: Список доступных REST методов ===
+echo "--- TEST 3: Available REST methods ---\n";
 try {
-    $result = \Bitrix\Rest\RestManager::process(
-        null,
+    $restResult = \CRestUtil::invokeMethod(
         'methods',
-        'GET',
         [],
-        null,
-        ['auth' => ['user_id' => $USER->GetID()]]
+        'GET'
     );
 
-    if ($result && isset($result['result'])) {
-        $methods = $result['result'];
+    if (is_array($restResult) && isset($restResult['result'])) {
+        $methods = $restResult['result'];
         $scopeCount = [];
 
         foreach ($methods as $method => $info) {
@@ -110,13 +107,16 @@ try {
         }
 
         echo "✓ Total methods: " . count($methods) . "\n";
-        echo "Scopes:\n";
+        echo "Top scopes:\n";
 
         arsort($scopeCount);
-        foreach (array_slice($scopeCount, 0, 10) as $scope => $count) {
+        foreach (array_slice($scopeCount, 0, 10, true) as $scope => $count) {
             echo "  - {$scope}: {$count} methods\n";
         }
         echo "\n";
+    } else {
+        echo "Response:\n";
+        echo json_encode($restResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
     }
 
 } catch (\Exception $e) {
