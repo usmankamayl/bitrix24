@@ -1,0 +1,14 @@
+# Секреты и настройки
+php_interface/config/.environment
+php_interface/config/.env.local
+php_interface/.env
+php_interface/dbconn.php
+
+# Логи (оставляем только пустую папку)
+logs/*
+!logs/.htaccess
+
+# Мусор
+.idea/
+.vscode/
+.DS_Store

@@ -1,26 +1,37 @@
 <?php
+
 /**
- * Точка входа для пользовательских расширений
- * Этот файл автоматически подключается ядром Bitrix при инициализации
+ * Точка входа для пользовательских расширений.
+ * Подключается ядром Bitrix при инициализации.
  *
  * Документация:
  * https://dev.1c-bitrix.ru/learning/course/index.php?COURSE_ID=43&LESSON_ID=2830
+ *
+ * Принцип: init.php — короткий. Вся логика — в отдельных файлах.
  */
 
-// Автозагрузка классов из /local/classes
-spl_autoload_register(function ($class) {
-    $classFile = str_replace('\\', '/', $class) . '.php';
-    $classPath = $_SERVER['DOCUMENT_ROOT'] . '/local/classes/' . $classFile;
+declare(strict_types=1);
 
-    if (file_exists($classPath)) {
-        require_once $classPath;
-        return true;
+// Автозагрузка классов из /local/php_interface/classes/
+spl_autoload_register(static function (string $className): void {
+    $classFile = __DIR__ . '/classes/'
+        . str_replace('\\', '/', $className)
+        . '.php';
+
+    if (is_file($classFile)) {
+        require_once $classFile;
     }
-
-    return false;
 });
 
-// Здесь позже добавим:
-// - Регистрацию обработчиков событий
-// - Подключение модулей
-// - Настройки окружения
+// Разделение ответственности
+foreach ([
+             __DIR__ . '/kernel.php',        // env, service locator, конфигурация
+             __DIR__ . '/events.php',        // регистрация обработчиков событий
+             __DIR__ . '/vendor/autoload.php', // composer-пакеты (если есть)
+             __DIR__ . '/legacy.php',        // устаревшие механики
+         ] as $filePath) {
+    if (is_file($filePath)) {
+        require_once $filePath;
+    }
+}
+unset($filePath);

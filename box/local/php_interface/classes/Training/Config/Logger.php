@@ -114,21 +114,20 @@ class Logger
         $result = [];
 
         foreach ($data as $key => $value) {
-            $lowerKey = strtolower($key);
+            $lowerKey = strtolower((string)$key);
             $isSensitive = false;
 
-            // Проверяем, содержит ли ключ чувствительное слово
             foreach (self::SENSITIVE_KEYS as $sensitiveKey) {
-                if (strpos($lowerKey, $sensitiveKey) !== false) {
+                if (str_contains($lowerKey, $sensitiveKey)) {
                     $isSensitive = true;
                     break;
                 }
             }
 
-            if ($isSensitive) {
-                $result[$key] = self::maskValue($value);
-            } elseif (is_array($value)) {
+            if (is_array($value)) {
                 $result[$key] = self::maskSensitiveData($value);
+            } elseif ($isSensitive) {
+                $result[$key] = self::maskValue($value);
             } else {
                 $result[$key] = $value;
             }
